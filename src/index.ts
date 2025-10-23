@@ -25,7 +25,7 @@ const vnp_TmnCode = "PJZDWE58"; //  mã máy chủ VNPAY của bạn
 const vnp_HashSecret = "5IGOKPDW2OXSGB2NQYXICQY23PBKJA9V"; // khóa bí mật dùng để tạo chữ ký HMAC
 const vnp_Url = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html";
 // Url thanh toán môi trường TEST
-const vnp_ReturnUrl = "http://localhost:5400/bill"; // URL trả về sau khi thanh toán
+const vnp_ReturnUrl = "https://booking-service-app.vercel.app/bill"; // URL trả về sau khi thanh toán
 
 app.post("/create_payment_url", (req: Request, res: Response) => {
   // Lấy địa chỉ IP của khách hàng từ yêu cầu.
