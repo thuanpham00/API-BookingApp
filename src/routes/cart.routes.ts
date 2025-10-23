@@ -1,5 +1,4 @@
 import { Request, Response, Router } from "express";
-import { ObjectId } from "mongodb";
 import { getDB } from "../db";
 
 const cartRoutes = Router();
@@ -8,15 +7,36 @@ cartRoutes.post("/", async (req: Request, res: Response): Promise<void> => {
   try {
     const { uuid, flightData } = req.body;
     if (!uuid || !flightData) {
-      res.status(400).json({ success: false });
+      res.status(400).json({ success: false, message: "Thiếu uuid hoặc flightData" });
       return;
     }
 
     const db = getDB();
-    const result = await db.collection("cart").insertOne({ uuid, flightData });
-    res.json({ success: true, id: result.insertedId });
+    const cartCollection = db.collection("cart");
+
+    // 🔍 Check trùng vé cho cùng user
+    const existing = await cartCollection.findOne({
+      uuid,
+      "flightData.data.flightOffers.0.itineraries.0.segments.0.departure.at":
+        flightData.data.flightOffers[0].itineraries[0].segments[0].departure.at,
+      "flightData.data.flightOffers.0.itineraries.0.segments.0.arrival.at":
+        flightData.data.flightOffers[0].itineraries[0].segments[0].arrival.at,
+      "flightData.data.flightOffers.0.itineraries.0.segments.0.carrierCode":
+        flightData.data.flightOffers[0].itineraries[0].segments[0].carrierCode,
+      "flightData.data.flightOffers.0.travelerPricings.0.price.total":
+        flightData.data.flightOffers[0].travelerPricings[0].price.total,
+    });
+
+    if (existing) {
+      res.status(409).json({ success: false, message: "Chuyến bay đã có trong giỏ hàng" });
+      return;
+    }
+
+    await cartCollection.insertOne({ uuid, flightData, createdAt: new Date() });
+    res.json({ success: true, message: "Thêm vào giỏ hàng thành công" });
   } catch (error) {
-    res.status(500).json({ success: false });
+    console.error(error);
+    res.status(500).json({ success: false, message: "Lỗi khi thêm vào giỏ hàng" });
   }
 });
 
@@ -33,20 +53,33 @@ cartRoutes.get("/:uuid", async (req: Request, res: Response): Promise<void> => {
   }
 });
 
-cartRoutes.delete("/:id", async (req: Request, res: Response): Promise<void> => {
+cartRoutes.delete("/", async (req: Request, res: Response): Promise<void> => {
   try {
-    const { id } = req.params;
+    const { uuid, uuid_ticket } = req.body;
+
+    if (!uuid || !uuid_ticket) {
+      res.status(400).json({
+        success: false,
+        message: "Thiếu uuid hoặc uuid_ticket",
+      });
+      return;
+    }
+
     const db = getDB();
     const cartCollection = db.collection("cart");
 
-    const result = await cartCollection.deleteOne({ _id: new ObjectId(id) });
+    // Xóa theo người dùng + mã vé
+    const result = await cartCollection.deleteOne({
+      uuid,
+      "flightData.uuid_ticket": uuid_ticket,
+    });
 
     if (result.deletedCount === 0) {
       res.status(404).json({
         success: false,
-        message: "Không tìm thấy vé trong giỏ hàng",
+        message: "Không tìm thấy vé để xóa",
       });
-      return; // ✅ Kết thúc hàm để TypeScript hiểu không trả Response
+      return;
     }
 
     res.json({
@@ -54,10 +87,10 @@ cartRoutes.delete("/:id", async (req: Request, res: Response): Promise<void> => 
       message: "Đã xóa vé khỏi giỏ hàng",
     });
   } catch (error) {
-    console.error(error);
+    console.error("❌ Lỗi khi xóa vé:", error);
     res.status(500).json({
       success: false,
-      message: "Lỗi khi xóa vé",
+      message: "Lỗi khi xóa vé khỏi giỏ hàng",
     });
   }
 });

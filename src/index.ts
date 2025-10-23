@@ -4,6 +4,8 @@ import crypto from "crypto";
 import cors from "cors";
 import { connectDB } from "./db";
 import cartRoutes from "./routes/cart.routes";
+import purchaseRoutes from "./routes/purchase.routes";
+import cancelRoutes from "./routes/cancel.routes";
 
 /**
  * Ngân hàng	NCB
@@ -93,6 +95,8 @@ const port = 3000;
 connectDB();
 
 app.use("/cart", cartRoutes);
+app.use("/purchase", purchaseRoutes);
+app.use("/purchase-cancel", cancelRoutes);
 
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
