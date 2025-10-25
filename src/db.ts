@@ -1,10 +1,16 @@
 import { MongoClient } from "mongodb";
+import dotenv from "dotenv";
+dotenv.config();
 
-const uri =
-  "mongodb+srv://phamminhthuan912:thuan123@flight-booking.sindgy0.mongodb.net/?retryWrites=true&w=majority&appName=flight-booking";
+const uri = process.env.MONGODB_URI as string;
+if (!uri) {
+  console.error("❌ MONGODB_URI is not set. Set it in .env (local) or Render Environment (production).");
+  throw new Error("MONGODB_URI is not set");
+}
+console.log("ℹ️ MONGODB_URI is present");
 
-const client = new MongoClient(uri);
-const dbName = "flightBooking"; // bạn có thể đổi tên DB tùy ý, ví dụ "flight_booking"
+const client = new MongoClient(uri, { serverSelectionTimeoutMS: 5000 });
+const dbName = process.env.MONGODB_DB as string;
 
 export async function connectDB() {
   try {
@@ -12,6 +18,7 @@ export async function connectDB() {
     console.log("✅ Connected to MongoDB successfully");
   } catch (error) {
     console.error("❌ MongoDB connection error:", error);
+    throw error; // bắt buộc để server không start khi DB không connect được
   }
 }
 
