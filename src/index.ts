@@ -90,14 +90,23 @@ function sortObject(obj: Record<string, string>): Record<string, string> {
   return sorted;
 }
 
-const port = 3000;
+const port = Number(process.env.PORT || 3000);
 
-connectDB();
-
-app.use("/cart", cartRoutes);
-app.use("/purchase", purchaseRoutes);
-app.use("/purchase-cancel", cancelRoutes);
-
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
+app.get("/", (req: Request, res: Response) => {
+  res.json({ success: true, message: "Server is up" });
 });
+
+connectDB()
+  .then(() => {
+    app.use("/cart", cartRoutes);
+    app.use("/purchase", purchaseRoutes);
+    app.use("/purchase-cancel", cancelRoutes);
+
+    app.listen(port, () => {
+      console.log(`Server is running on port ${port}`);
+    });
+  })
+  .catch((err) => {
+    console.error("❌ Failed to connect DB, exiting:", err);
+    process.exit(1);
+  });
